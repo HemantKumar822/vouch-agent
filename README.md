@@ -180,13 +180,16 @@ Edit `config/verify_config.json` to change the verification tolerance:
 
 ## Environment Variables
 
+Vouch supports **Multi-Provider LLM execution**. You can seamlessly toggle between Google's Gemini models and Groq's Llama models by changing a single variable. Vouch dynamically handles the differences between Pydantic's JSON schema (for Groq) and the native `google.genai.types.Schema` (for Gemini).
+
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `GOOGLE_API_KEY` | Yes | — | Google AI Studio API key for Gemini Flash |
-| `DEFAULT_MODEL` | No | `gemini-2.5-flash` | Gemini model ID |
-| `GOOGLE_GENAI_USE_VERTEXAI` | No | `False` | Set to `True` for GCP Vertex AI |
-| `LOGS_BUCKET_NAME` | No | — | GCS bucket for Cloud Logging (production only) |
-| `ALLOW_ORIGINS` | No | — | Comma-separated CORS origins (production only) |
+| `LLM_PROVIDER` | Yes | `gemini` | Determines which LLM runs the drafting and semantic verification. Accepts `gemini` or `groq`. |
+| `GEMINI_API_KEY` | If `LLM_PROVIDER=gemini` | — | Google AI Studio API key for Gemini. |
+| `GEMINI_MODEL` | No | `gemini-3.1-flash-lite` | The specific Gemini model ID to use. |
+| `GROQ_API_KEY` | If `LLM_PROVIDER=groq` | — | Groq API key for Llama 3 models. |
+| `GROQ_MODEL` | No | `llama-3.3-70b-versatile` | The specific Groq model ID to use. |
+| `PORT` | No | `8080` | Port for the local FastAPI dev server. |
 
 ---
 

@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vouch — Interactive Report Verification Dashboard</title>
+    <meta name="description" content="Deterministic truth-checking and report auditing layer for LLM-generated summaries.">
+    <!-- Google Fonts: Outfit & Space Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #0b0c10;
+            --panel-bg: rgba(22, 24, 35, 0.7);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --accent-primary: #8b5cf6; /* Violet */
+            --accent-secondary: #ec4899; /* Pink */
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --color-pass: #10b981; /* Emerald Green */
+            --color-fail: #ef4444; /* Rose Red */
+            --glow-pass: rgba(16, 185, 129, 0.2);
+            --glow-fail: rgba(239, 68, 68, 0.2);
+            --font-outfit: 'Outfit', sans-serif;
+            --font-mono: 'Space Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 10% 20%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 90% 80%, rgba(236, 72, 153, 0.1) 0px, transparent 50%);
+            color: var(--text-main);
+            font-family: var(--font-outfit);
+            min-height: 100vh;
+            line-height: 1.5;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        /* --- Header --- */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            color: white;
+            font-size: 1.25rem;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+        }
+
+        h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            background: linear-gradient(to right, #ffffff, #a78bfa, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.025em;
+        }
+
+        .header-meta {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .badge {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            padding: 0.35rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .badge-live::before {
+            content: "";
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: var(--color-pass);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--color-pass);
+            animation: pulse-live 2s infinite;
+        }
+
+        @keyframes pulse-live {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        /* --- Main Layout Grid --- */
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.3fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 1024px) {
+            .layout-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* --- Panels --- */
+        .panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 1.75rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .panel-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: white;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.75rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* --- Source Data Key-Value Editor --- */
+        .kv-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            max-height: 260px;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+
+        .kv-row {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            animation: slide-in 0.25s ease-out;
+        }
+
+        @keyframes slide-in {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        input, textarea, select {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-family: var(--font-outfit);
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.25);
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .kv-row input[type="text"] {
+            flex: 1.5;
+        }
+
+        .kv-row input[type="number"] {
+            flex: 1;
+        }
+
+        .btn-icon {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: var(--color-fail);
+            border-radius: 8px;
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-icon:hover {
+            background: var(--color-fail);
+            color: white;
+        }
+
+        .btn-outline {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px dashed var(--border-color);
+            color: var(--text-muted);
+            padding: 0.65rem;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .btn-outline:hover {
+            border-color: var(--accent-primary);
+            color: var(--text-main);
+            background: rgba(139, 92, 246, 0.05);
+        }
+
+        /* --- Toggle Editor Mode --- */
+        .editor-toggle-btn {
+            background: none;
+            border: none;
+            color: var(--accent-primary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .editor-toggle-btn:hover {
+            text-decoration: underline;
+        }
+
+        .raw-json-textarea {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            height: 180px;
+            resize: vertical;
+        }
+
+        /* --- Brief Area --- */
+        textarea.brief-input {
+            height: 70px;
+            resize: none;
+        }
+
+        /* --- Run Button --- */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border: none;
+            color: white;
+            padding: 1rem;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1.05rem;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.35);
+            transition: all 0.25s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(139, 92, 246, 0.5);
+            filter: brightness(1.1);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary:disabled {
+            background: #27272a;
+            box-shadow: none;
+            cursor: not-allowed;
+            color: var(--text-muted);
+            transform: none;
+            filter: none;
+        }
+
+        /* --- Pulse Flow Steps --- */
+        .flow-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1rem;
+        }
+
+        .flow-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.35rem;
+            flex: 1;
+            position: relative;
+        }
+
+        .flow-step:not(:last-child)::after {
+            content: "➔";
+            position: absolute;
+            right: -10%;
+            top: 15%;
+            color: var(--border-color);
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        .flow-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #3f3f46;
+            transition: all 0.3s;
+        }
+
+        .flow-step.active .flow-indicator {
+            background-color: var(--accent-primary);
+            box-shadow: 0 0 10px var(--accent-primary);
+            animation: pulse-step 1.5s infinite;
+        }
+
+        .flow-step.done .flow-indicator {
+            background-color: var(--color-pass);
+            box-shadow: 0 0 10px var(--color-pass);
+        }
+
+        @keyframes pulse-step {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+
+        .flow-name {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .flow-step.active .flow-name {
+            color: var(--accent-primary);
+        }
+
+        .flow-step.done .flow-name {
+            color: var(--color-pass);
+        }
+
+        /* --- Audit summary Header Cards --- */
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+
+        .summary-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .summary-card-val {
+            font-size: 1.75rem;
+            font-weight: 800;
+            font-family: var(--font-mono);
+        }
+
+        .card-checked { color: white; }
+        .card-passed { color: var(--color-pass); }
+        .card-flagged { color: var(--color-fail); }
+
+        /* --- Tabs --- */
+        .tab-header {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            gap: 0.5rem;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--text-muted);
+            padding: 0.75rem 1.25rem;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            color: white;
+        }
+
+        .tab-btn.active {
+            color: var(--accent-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fade-in 0.3s ease;
+            min-height: 180px;
+            background: rgba(0, 0, 0, 0.15);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem;
+            white-space: pre-wrap;
+            font-size: 1.05rem;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* --- Report Highlight Markups --- */
+        .claim-highlight-pass {
+            background-color: rgba(16, 185, 129, 0.12);
+            border-bottom: 2px solid var(--color-pass);
+            padding: 0.15rem 0.25rem;
+            border-radius: 4px;
+            cursor: help;
+            display: inline-block;
+        }
+
+        .claim-highlight-fail {
+            background-color: rgba(239, 68, 68, 0.12);
+            border-bottom: 2px solid var(--color-fail);
+            padding: 0.15rem 0.25rem;
+            border-radius: 4px;
+            cursor: help;
+            font-weight: 600;
+            color: var(--color-fail);
+            display: inline-block;
+        }
+
+        .claim-highlight-raw {
+            background-color: rgba(139, 92, 246, 0.12);
+            border-bottom: 2px solid var(--accent-primary);
+            padding: 0.1rem 0.25rem;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--accent-secondary);
+        }
+
+        /* --- Table --- */
+        .table-wrapper {
+            overflow-x: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.02);
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            padding: 0.85rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        td {
+            padding: 0.85rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .verdict-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-weight: 700;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            text-transform: uppercase;
+        }
+
+        .verdict-pass {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--color-pass);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .verdict-fail {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--color-fail);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .table-cell-mono {
+            font-family: var(--font-mono);
+            color: #d1d5db;
+        }
+
+        /* --- Loading Spinner --- */
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* --- Tooltip --- */
+        [data-tooltip] {
+            position: relative;
+        }
+
+        [data-tooltip]::before {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e1b4b;
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.25s;
+            z-index: 10;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        [data-tooltip]:hover::before {
+            opacity: 1;
+            transform: translate(-50%, -5px);
+        }
+
+        /* Empty state styling */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            gap: 0.5rem;
+            height: 100%;
+            padding: 3rem 0;
+        }
+
+        .empty-state-title {
+            font-weight: 700;
+            color: #d1d5db;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Header -->
+    <header>
+        <div class="logo-container">
+            <div class="logo-icon">V</div>
+            <div>
+                <h1>Vouch</h1>
+                <p style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">Neuro-Symbolic Report Verification System</p>
+            </div>
+        </div>
+        <div class="header-meta">
+            <div class="badge badge-live">Gemini 3.1 Flash Lite</div>
+            <div class="badge" id="tolerance-badge">Tolerance: 1.0%</div>
+        </div>
+    </header>
+
+    <!-- Main Grid -->
+    <div class="layout-grid">
+        <!-- Configuration Panel (Left) -->
+        <div class="panel">
+            <div class="panel-title">
+                <span>Configure Input</span>
+                <button class="editor-toggle-btn" id="toggle-editor-mode">Switch to JSON Editor</button>
+            </div>
+
+            <!-- KV Editor -->
+            <div class="form-group" id="kv-editor-group">
+                <label>Source Numbers (Data Dictionary)</label>
+                <div class="kv-container" id="kv-container">
+                    <!-- Loaded dynamically via JS -->
+                </div>
+                <button class="btn-outline" id="btn-add-kv" style="margin-top: 0.5rem;">+ Add Numeric Field</button>
+            </div>
+
+            <!-- Raw JSON Editor (Hidden by default) -->
+            <div class="form-group" id="json-editor-group" style="display: none;">
+                <label>Source Data (JSON)</label>
+                <textarea class="raw-json-textarea" id="json-editor-textarea" spellcheck="false"></textarea>
+            </div>
+
+            <!-- Brief Area -->
+            <div class="form-group">
+                <label for="brief">Prompt Brief / Instruction</label>
+                <textarea class="brief-input" id="brief" placeholder="e.g. write a 3-sentence Q3 marketing summary">write a 3-sentence Q3 marketing summary</textarea>
+            </div>
+
+            <button class="btn-primary" id="btn-run">
+                <span class="spinner" id="run-spinner"></span>
+                <span id="btn-text">Audit & Verify Report</span>
+            </button>
+        </div>
+
+        <!-- Results Panel (Right) -->
+        <div class="panel">
+            <div class="panel-title">Verification Results</div>
+
+            <!-- Pulsing Graph steps -->
+            <div class="flow-container">
+                <div class="flow-step" id="step-draft">
+                    <div class="flow-indicator"></div>
+                    <div class="flow-name">Draft</div>
+                </div>
+                <div class="flow-step" id="step-extract">
+                    <div class="flow-indicator"></div>
+                    <div class="flow-name">Extract</div>
+                </div>
+                <div class="flow-step" id="step-verify">
+                    <div class="flow-indicator"></div>
+                    <div class="flow-name">Verify</div>
+                </div>
+                <div class="flow-step" id="step-output">
+                    <div class="flow-indicator"></div>
+                    <div class="flow-name">Output</div>
+                </div>
+            </div>
+
+            <!-- Results Output Area -->
+            <div id="results-display-area" style="display: none; flex-direction: column; gap: 1.5rem;">
+                <!-- Statistics Cards -->
+                <div class="summary-cards">
+                    <div class="summary-card">
+                        <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Claims Checked</span>
+                        <div class="summary-card-val card-checked" id="stat-total">0</div>
+                    </div>
+                    <div class="summary-card">
+                        <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Verified Correct</span>
+                        <div class="summary-card-val card-passed" id="stat-passed">0</div>
+                    </div>
+                    <div class="summary-card">
+                        <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Flagged Errors</span>
+                        <div class="summary-card-val card-fail" id="stat-flagged">0</div>
+                    </div>
+                </div>
+
+                <!-- Report Tabs -->
+                <div class="form-group">
+                    <label>Report Prose Inspection</label>
+                    <div class="tab-header">
+                        <button class="tab-btn active" onclick="switchTab('tab-audited')">Audited Report</button>
+                        <button class="tab-btn" onclick="switchTab('tab-clean')">Clean Prose</button>
+                        <button class="tab-btn" onclick="switchTab('tab-raw')">Raw Output</button>
+                    </div>
+                    
+                    <div class="tab-content active" id="tab-audited"></div>
+                    <div class="tab-content" id="tab-clean"></div>
+                    <div class="tab-content" id="tab-raw" style="font-family: var(--font-mono); font-size: 0.85rem;"></div>
+                </div>
+
+                <!-- Claims Table -->
+                <div class="form-group">
+                    <label>Arithmetic Breakdown</label>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Label</th>
+                                    <th>Stated Value</th>
+                                    <th>Recomputed</th>
+                                    <th>Status</th>
+                                    <th>Source Fields</th>
+                                </tr>
+                            </thead>
+                            <tbody id="claims-table-body">
+                                <!-- Loaded via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty State placeholder -->
+            <div id="results-empty-state" class="empty-state">
+                <div class="empty-state-title">No Active Verification Session</div>
+                <div style="font-size: 0.85rem;">Configure the source numbers on the left and click Audit to start.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Default Template Data
+    let defaultSourceData = {
+        "q2_spend": 40000,
+        "q3_spend": 50000,
+        "q2_leads": 200,
+        "q3_leads": 210
+    };
+
+    let isJsonMode = false;
+
+    // Elements
+    const kvContainer = document.getElementById("kv-container");
+    const btnAddKv = document.getElementById("btn-add-kv");
+    const toggleEditorModeBtn = document.getElementById("toggle-editor-mode");
+    const kvEditorGroup = document.getElementById("kv-editor-group");
+    const jsonEditorGroup = document.getElementById("json-editor-group");
+    const jsonEditorTextarea = document.getElementById("json-editor-textarea");
+    const btnRun = document.getElementById("btn-run");
+    const runSpinner = document.getElementById("run-spinner");
+    const btnText = document.getElementById("btn-text");
+    const briefInput = document.getElementById("brief");
+
+    // Initialize KV editor with default data
+    function initKvEditor(data) {
+        kvContainer.innerHTML = "";
+        for (const [key, value] of Object.entries(data)) {
+            addKvRow(key, value);
+        }
+    }
+
+    function addKvRow(key = "", value = "") {
+        const row = document.createElement("div");
+        row.className = "kv-row";
+        row.innerHTML = `
+            <input type="text" placeholder="Field name (e.g. q2_spend)" class="kv-key-input" value="${key}" spellcheck="false" />
+            <input type="number" placeholder="Value" class="kv-val-input" value="${value}" />
+            <button class="btn-icon" title="Remove Field" onclick="this.parentElement.remove()">✕</button>
+        `;
+        kvContainer.appendChild(row);
+    }
+
+    // Toggle editor mode (KV list vs JSON text)
+    toggleEditorModeBtn.addEventListener("click", () => {
+        if (!isJsonMode) {
+            // Switch to JSON
+            const currentData = getSourceDataFromUI();
+            jsonEditorTextarea.value = JSON.stringify(currentData, null, 2);
+            kvEditorGroup.style.display = "none";
+            jsonEditorGroup.style.display = "flex";
+            toggleEditorModeBtn.innerText = "Switch to Key-Value List";
+        } else {
+            // Switch to KV
+            try {
+                const parsed = JSON.parse(jsonEditorTextarea.value);
+                initKvEditor(parsed);
+                jsonEditorGroup.style.display = "none";
+                kvEditorGroup.style.display = "flex";
+                toggleEditorModeBtn.innerText = "Switch to JSON Editor";
+            } catch (err) {
+                alert("Invalid JSON format. Please correct it before switching.");
+                return;
+            }
+        }
+        isJsonMode = !isJsonMode;
+    });
+
+    btnAddKv.addEventListener("click", () => addKvRow());
+
+    // Gather input data from UI
+    function getSourceDataFromUI() {
+        if (isJsonMode) {
+            try {
+                return JSON.parse(jsonEditorTextarea.value);
+            } catch (e) {
+                return {};
+            }
+        } else {
+            const data = {};
+            const rows = kvContainer.querySelectorAll(".kv-row");
+            rows.forEach(row => {
+                const key = row.querySelector(".kv-key-input").value.trim();
+                const val = parseFloat(row.querySelector(".kv-val-input").value);
+                if (key) {
+                    data[key] = isNaN(val) ? 0 : val;
+                }
+            });
+            return data;
+        }
+    }
+
+    // Tab Switching
+    window.switchTab = function(tabId) {
+        document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
+        document.querySelectorAll(".tab-content").forEach(content => content.classList.remove("active"));
+        
+        // Find button related to this tab
+        const activeBtn = Array.from(document.querySelectorAll(".tab-btn")).find(btn => 
+            btn.getAttribute("onclick").includes(tabId)
+        );
+        if (activeBtn) activeBtn.classList.add("active");
+        document.getElementById(tabId).classList.add("active");
+    };
+
+    // Highlight elements dynamically in Clean and Audited report
+    function buildHighlightedReport(draftText, claims) {
+        let cleanTextHtml = draftText;
+        let auditedTextHtml = draftText;
+
+        // Sort claims by raw_tag length descending to avoid nested string replacement errors
+        const sortedClaims = [...claims].sort((a, b) => b.raw_tag.length - a.raw_tag.length);
+
+        sortedClaims.forEach(claim => {
+            const isPass = claim.verification === "PASS";
+            const tooltipText = isPass 
+                ? `Calculated match: ${claim.recomputed_value}`
+                : `Error! Stated ${claim.stated_value}, recomputed value is ${claim.recomputed_value} — ${claim.reason}`;
+
+            // 1. Clean report: replace raw tag with a styled green/regular stated value highlight
+            const cleanHighlight = `<span class="claim-highlight-pass" data-tooltip="Calculated value: ${claim.recomputed_value}">${claim.stated_value}</span>`;
+            cleanTextHtml = cleanTextHtml.replaceAll(claim.raw_tag, cleanHighlight);
+
+            // 2. Audited report: highlight PASS in green, FAIL in red with warning tag
+            const auditHighlight = isPass
+                ? `<span class="claim-highlight-pass" data-tooltip="${tooltipText}">${claim.stated_value}</span>`
+                : `<span class="claim-highlight-fail" data-tooltip="${tooltipText}">[FLAGGED: stated ${claim.stated_value}, verified ${claim.recomputed_value} — ${claim.reason}]</span>`;
+            auditedTextHtml = auditedTextHtml.replaceAll(claim.raw_tag, auditHighlight);
+        });
+
+        // 3. Raw text report: highlight raw tags in purple monospaced
+        let rawTextHtml = draftText.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        sortedClaims.forEach(claim => {
+            const escapedTag = claim.raw_tag.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            const highlightHtml = `<span class="claim-highlight-raw">${escapedTag}</span>`;
+            rawTextHtml = rawTextHtml.replaceAll(escapedTag, highlightHtml);
+        });
+
+        return { cleanTextHtml, auditedTextHtml, rawTextHtml };
+    }
+
+    // Run the pipeline
+    btnRun.addEventListener("click", async () => {
+        const sourceData = getSourceDataFromUI();
+        const brief = briefInput.value.trim();
+
+        if (Object.keys(sourceData).length === 0) {
+            alert("Please enter at least one source data field.");
+            return;
+        }
+        if (!brief) {
+            alert("Please specify a summary brief.");
+            return;
+        }
+
+        // Set UI loading state
+        btnRun.disabled = true;
+        runSpinner.style.display = "block";
+        btnText.innerText = "Processing Workflow...";
+        document.getElementById("results-empty-state").style.display = "none";
+        document.getElementById("results-display-area").style.display = "none";
+
+        // Reset flow steps
+        document.querySelectorAll(".flow-step").forEach(step => {
+            step.className = "flow-step";
+        });
+
+        // Step 1: Draft running
+        const stepDraft = document.getElementById("step-draft");
+        stepDraft.classList.add("active");
+
+        try {
+            // Make AJAX call to custom FastAPI API route
+            const res = await fetch("/api/run", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ source_data: sourceData, brief: brief })
+            });
+
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.detail || "Server error running pipeline.");
+            }
+
+            const state = await res.json();
+
+            // Progress transitions (simulated quick completion for intermediate nodes)
+            stepDraft.classList.remove("active");
+            stepDraft.classList.add("done");
+
+            const stepExtract = document.getElementById("step-extract");
+            stepExtract.classList.add("active");
+            await new Promise(r => setTimeout(r, 400));
+            stepExtract.classList.remove("active");
+            stepExtract.classList.add("done");
+
+            const stepVerify = document.getElementById("step-verify");
+            stepVerify.classList.add("active");
+            await new Promise(r => setTimeout(r, 400));
+            stepVerify.classList.remove("active");
+            stepVerify.classList.add("done");
+
+            const stepOutput = document.getElementById("step-output");
+            stepOutput.classList.add("active");
+            await new Promise(r => setTimeout(r, 300));
+            stepOutput.classList.remove("active");
+            stepOutput.classList.add("done");
+
+            // Fill results
+            const summary = state.summary || { total_claims: 0, passed: 0, failed: 0 };
+            document.getElementById("stat-total").innerText = summary.total_claims;
+            document.getElementById("stat-passed").innerText = summary.passed;
+            document.getElementById("stat-flagged").innerText = summary.failed;
+
+            // Highlight and load prose tabs
+            const rawDraft = state.draft_text || "";
+            const claims = state.claims || [];
+            const { cleanTextHtml, auditedTextHtml, rawTextHtml } = buildHighlightedReport(rawDraft, claims);
+
+            document.getElementById("tab-audited").innerHTML = auditedTextHtml;
+            document.getElementById("tab-clean").innerHTML = cleanTextHtml;
+            document.getElementById("tab-raw").innerHTML = rawTextHtml;
+
+            // Reset tabs to default (audited active)
+            switchTab('tab-audited');
+
+            // Render Claims Table
+            const tbody = document.getElementById("claims-table-body");
+            tbody.innerHTML = "";
+
+            if (claims.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No numeric claims were tagged in this draft.</td></tr>`;
+            } else {
+                claims.forEach(c => {
+                    const isPass = c.verification === "PASS";
+                    const badgeClass = isPass ? "verdict-badge verdict-pass" : "verdict-badge verdict-fail";
+                    const badgeText = isPass ? "PASS" : "FAIL";
+                    
+                    let recomputedStr = c.recomputed_value;
+                    if (typeof recomputedStr === "number" && c.label.endsWith("_pct")) {
+                        recomputedStr = `${recomputedStr.toFixed(2)}%`;
+                    } else if (typeof recomputedStr === "number") {
+                        recomputedStr = recomputedStr.toFixed(2);
+                    }
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td class="table-cell-mono">${c.label}</td>
+                            <td>${c.stated_value}</td>
+                            <td class="table-cell-mono" style="color: ${isPass ? 'var(--color-pass)' : 'var(--color-fail)'}">${recomputedStr}</td>
+                            <td><span class="${badgeClass}">${badgeText}</span></td>
+                            <td class="table-cell-mono" style="font-size:0.8rem; color:var(--text-muted);">${c.source_fields.join(", ")}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            // Display results
+            document.getElementById("results-display-area").style.display = "flex";
+
+        } catch (err) {
+            alert("Verification Failed:\n" + err.message);
+            document.getElementById("results-empty-state").style.display = "flex";
+        } finally {
+            // Restore button UI
+            btnRun.disabled = false;
+            runSpinner.style.display = "none";
+            btnText.innerText = "Audit & Verify Report";
+        }
+    });
+
+    // Run initialization
+    initKvEditor(defaultSourceData);
+</script>
+</body>
+</html>

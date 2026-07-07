@@ -14,14 +14,14 @@ When summarizing an earnings report, an LLM might correctly cite "$50,000" but i
 Asking an LLM to "self-correct" does not yield a reliable signal. Vouch solves this through a **strict separation of concerns**: an LLM writes the narrative, while an independent, deterministic engine verifies the math—backed by a secondary LLM-Judge to catch semantic context hallucinations.
 
 ## 2. Concepts Demonstrated
-| Concept | Implementation File | Description |
+To satisfy the submission requirements, Vouch explicitly demonstrates **four (4) of the Key Concepts** covered in the course:
+
+| Hackathon Key Concept | Implementation / Evidence | Description |
 |---|---|---|
-| **Agentic Workflow Graph** | `app/agent.py` | Google ADK 2.0 directed graph separating drafting, extracting, and verifying logic. |
-| **Multi-LLM Architecture** | `app/draft_node.py` | Dynamic provider toggle between Gemini 3.1 Flash and Groq (Llama 3 70B). |
-| **Native Schema Enforcement** | `app/draft_node.py` | Bypassing strict API `additionalProperties` limitations using `google.genai.types.Schema`. |
-| **Deterministic Verification** | `app/verify_node.py` | Fast, purely programmatic math validation (`_pct`, `_sum`, `_diff`). |
-| **Semantic LLM-Judge** | `app/verify_node.py` | "LLM-as-a-Judge" fact-checking to catch contextual hallucinations. |
-| **Interactive UI** | `app/fast_api_app.py` | Real-time FastAPI Dev UI for interactive testing. |
+| **Agent / Multi-agent system (ADK)** *(Code)* | `app/agent.py` & `app/*_node.py` | Google ADK 2.0 directed graph separating drafting, extracting, and verifying logic into a multi-agent workflow. |
+| **Agent Skills / Agents CLI** *(Code)* | `agents-cli-manifest.yaml` | Scaffolding and project structure managed via the official Agents CLI toolchain. |
+| **Deployability** *(Code/Video)* | `Dockerfile` & `fast_api_app.py` | Containerized FastAPI application ready for immediate GCP Cloud Run deployment. |
+| **Antigravity** *(Video)* | *(Mentioned in Video)* | The entire project architecture, Pydantic API bypass, and hybrid verifier logic were pair-programmed alongside Antigravity. |
 
 ## 3. Architecture
 Vouch abandons the monolithic "mega-prompt" paradigm in favor of a specialized four-node directed graph orchestrating the workflow:

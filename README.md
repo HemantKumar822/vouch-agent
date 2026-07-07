@@ -189,7 +189,7 @@ Vouch supports **Multi-Provider LLM execution**. You can seamlessly toggle betwe
 | `GEMINI_MODEL` | No | `gemini-3.1-flash-lite` | The specific Gemini model ID to use. |
 | `GROQ_API_KEY` | If `LLM_PROVIDER=groq` | — | Groq API key for Llama 3 models. |
 | `GROQ_MODEL` | No | `llama-3.3-70b-versatile` | The specific Groq model ID to use. |
-| `PORT` | No | `8080` | Port for the local FastAPI dev server. |
+| `PORT` | No | `8001` | Port for the local FastAPI dev server. |
 
 ---
 
@@ -216,7 +216,7 @@ Vouch supports **Multi-Provider LLM execution**. You can seamlessly toggle betwe
 ### Local FastAPI server (development)
 
 ```bash
-uv run uvicorn app.fast_api_app:app --host 0.0.0.0 --port 8080
+uv run uvicorn app.fast_api_app:app --host 0.0.0.0 --port 8001
 ```
 
 ### GCP Cloud Run

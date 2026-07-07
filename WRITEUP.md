@@ -1,19 +1,20 @@
 # 🧾 Vouch — Hybrid Deterministic & Semantic Truth-Checking Layer for Generative Prose
 
-**Track: Freestyle Track**  
-**Author: Hemant Kumar**  
+**Track:** Freestyle Track  
+**Author:** Hemant Kumar  
 **GitHub:** [https://github.com/HemantKumar822/vouch-agent](https://github.com/HemantKumar822/vouch-agent)  
+**Video Presentation:** `[INSERT_YOUTUBE_LINK_HERE]` 🎥
 
 ---
 
-## 1. Problem Statement
+## 1. 🎯 Problem Statement
 Large Language Models (LLMs) are incredibly powerful reasoning engines, but their fundamental nature as probabilistic token-predictors introduces a critical flaw in enterprise environments: **they cannot reliably perform arithmetic, and they frequently hallucinate data mapping.**
 
 When summarizing an earnings report, an LLM might correctly cite "$50,000" but incorrectly attribute it to Q4 instead of Q1. Or it might attempt to calculate growth and confidently output "a 20% increase" when the true math yields 15%. 
 
 Asking an LLM to "self-correct" does not yield a reliable signal. Vouch solves this through a **strict separation of concerns**: an LLM writes the narrative, while an independent, deterministic engine verifies the math—backed by a secondary LLM-Judge to catch semantic context hallucinations.
 
-## 2. Concepts Demonstrated
+## 2. 🧠 Concepts Demonstrated
 To satisfy the submission requirements, Vouch explicitly demonstrates **four (4) of the Key Concepts** covered in the course:
 
 | Hackathon Key Concept | Implementation / Evidence | Description |
@@ -23,8 +24,24 @@ To satisfy the submission requirements, Vouch explicitly demonstrates **four (4)
 | **Deployability** *(Code/Video)* | `Dockerfile` & `fast_api_app.py` | Containerized FastAPI application ready for immediate GCP Cloud Run deployment. |
 | **Antigravity** *(Video)* | *(Mentioned in Video)* | The entire project architecture, Pydantic API bypass, and hybrid verifier logic were pair-programmed alongside Antigravity. |
 
-## 3. Architecture
+## 3. 🏗️ Architecture
 Vouch abandons the monolithic "mega-prompt" paradigm in favor of a specialized four-node directed graph orchestrating the workflow:
+
+```mermaid
+graph LR
+    A[Unstructured Prompt] --> B(Draft Node<br>LLM)
+    B --> C(Extract Node<br>Regex)
+    C --> D{Hybrid Verify Node}
+    D -- Math Check --> E(Output Node<br>Auditor)
+    D -- Semantic Check --> E
+    E --> F[Final Audited Report]
+    
+    style B fill:#e1f5fe,stroke:#03a9f4
+    style C fill:#fff3e0,stroke:#ff9800
+    style D fill:#e8f5e9,stroke:#4caf50
+    style E fill:#f3e5f5,stroke:#9c27b0
+```
+
 - **`draft_node.py` (The Writer):** Parses unstructured chat into structured JSON, generates 3–5 sentences of prose, and tags every numeric claim using a strict schema: `<<claim:LABEL|VALUE|FIELDS>>`.
 - **`extract_node.py` (The Parser):** Uses regular expressions to extract these embedded tags into structured Python dictionaries.
 - **`verify_node.py` (The Gatekeeper):** Our custom **Hybrid Verifier** (detailed below).

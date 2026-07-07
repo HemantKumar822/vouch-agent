@@ -27,19 +27,32 @@ To satisfy the submission requirements, Vouch explicitly demonstrates **four (4)
 ## 3. 🏗️ Architecture
 Vouch abandons the monolithic "mega-prompt" paradigm in favor of a specialized four-node directed graph orchestrating the workflow:
 
-```mermaid
-graph LR
-    A[Unstructured Prompt] --> B(Draft Node<br>LLM)
-    B --> C(Extract Node<br>Regex)
-    C --> D{Hybrid Verify Node}
-    D -- Math Check --> E(Output Node<br>Auditor)
-    D -- Semantic Check --> E
-    E --> F[Final Audited Report]
-    
-    style B fill:#e1f5fe,stroke:#03a9f4
-    style C fill:#fff3e0,stroke:#ff9800
-    style D fill:#e8f5e9,stroke:#4caf50
-    style E fill:#f3e5f5,stroke:#9c27b0
+```text
+[ Unstructured Prompt ]
+          │
+          ▼
++-------------------+
+|  Draft Node (LLM) |  <-- Generates tagged prose
++-------------------+
+          │
+          ▼
++-------------------+
+| Extract Node (Re) |  <-- Parses structured claims
++-------------------+
+          │
+          ▼
++-------------------+
+| HYBRID VERIFY NODE|  <-- 1. Math Check (Deterministic)
+|                   |  <-- 2. Semantic Check (LLM-Judge)
++-------------------+
+          │
+          ▼
++-------------------+
+|   Output Node     |  <-- Assembles final audited report
++-------------------+
+          │
+          ▼
+[ Final Audited Report ]
 ```
 
 - **`draft_node.py` (The Writer):** Parses unstructured chat into structured JSON, generates 3–5 sentences of prose, and tags every numeric claim using a strict schema: `<<claim:LABEL|VALUE|FIELDS>>`.
